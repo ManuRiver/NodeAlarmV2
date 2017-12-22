@@ -134,6 +134,12 @@ app.get("/api/alarmSetDate", function (req, res) {
     res.end();
 });
 
+// Used to Set Alarm Date and Time
+app.get("/api/alarmUpdate", function (req, res) {
+    alarmUpdate();
+    res.end();
+});
+
 /**
  * Subscribe route used by SmartThings Hub to register for callback/notifications and write to config.json
  * @param {String} host - The SmartThings Hub IP address and port number

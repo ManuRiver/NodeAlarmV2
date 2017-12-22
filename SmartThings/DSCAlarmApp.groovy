@@ -58,6 +58,9 @@ def installed() {
 }
 
 def updated() {
+  if (settings.enableDiscovery) {
+    removeZoneChildDevices()
+  }  
   writeLog("DSCAlarmSmartAppV2 - Updated with settings: ${settings}")
 	//unsubscribe()
 	initialize()
@@ -66,8 +69,10 @@ def updated() {
   if (settings.enableDiscovery) {
     //delay discovery for 5 seconds
     runIn(5, discoverChildDevices)
+    runIn(15, alarmUpdate)
     settings.enableDiscovery = false
   }  
+  
 }
 
 def initialize() {
@@ -83,6 +88,15 @@ def uninstalled() {
 private removeChildDevices() {
     getAllChildDevices().each { deleteChildDevice(it.deviceNetworkId) }
     writeLog("DSCAlarmSmartAppV2 - Removing all child devices")
+}
+
+private removeZoneChildDevices() {
+    getAllChildDevices().each { 
+        if(it.deviceNetworkId != 'dscalrpanel'){
+          deleteChildDevice(it.deviceNetworkId)
+        }
+      }
+    writeLog("DSCAlarmSmartAppV2 - Removing all Zone child devices")
 }
 
 def alarmHandler(evt) {
@@ -133,7 +147,9 @@ def lanResponseHandler(evt) {
     //}
 
     if (headers.'device' != 'dscalarm') {
-      writeLog("DSCAlarmSmartAppV2 - Received event ${evt} but it didn't came from DSCAlarm")
+      writeLog("DSCAlarmSmartAppV2 - Received event ${evt.stringValue} but it didn't came from DSCAlarm")
+      writeLog("DSCAlarmSmartAppV2 - Received event but it didn't came from DSCAlarm headers:  ${headers}")
+      writeLog("DSCAlarmSmartAppV2 - Received event but it didn't came from DSCAlarm body: ${body}")      
       return
     }
 
@@ -204,6 +220,11 @@ private updateAlarmSystemStatus(partitionstatus) {
   if (lastAlarmSystemStatus != state.alarmSystemStatus) {
     sendLocationEvent(name: "alarmSystemStatus", value: state.alarmSystemStatus)
   }
+}
+
+def alarmUpdate() {
+  sendCommand('/api/alarmUpdate')
+  writeLog("DSCAlarmSmartAppV2 - Sending Alarm Update request")
 }
 
 def discoverChildDevices() {
