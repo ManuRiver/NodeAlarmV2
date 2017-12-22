@@ -41,9 +41,9 @@ def page1() {
       input "enableDiscovery", "bool", title: "Discover Zones (WARNING: all existing zones will be removed)", required: false, defaultValue: false
     }
 
-    //section("Smart Home Monitor") {
-    //  input "enableSHM", "bool", title: "Integrate with Smart Home Monitor", required: true, defaultValue: true
-    //}
+    section("Smart Home Monitor") {
+      input "enableSHM", "bool", title: "Integrate with Smart Home Monitor", required: true, defaultValue: true
+    }
 
 		section("Enable Debug Log at SmartThing IDE"){
 			input "idelog", "bool", title: "Select True or False:", defaultValue: false, required: false
@@ -72,6 +72,7 @@ def updated() {
 
 def initialize() {
     subscribe(location, null, lanResponseHandler, [filterEvents:false])
+    subscribe(location, "alarmSystemStatus", alarmHandler)
     writeLog("DSCAlarmSmartAppV2 - Initialize")
 }
 
@@ -82,6 +83,27 @@ def uninstalled() {
 private removeChildDevices() {
     getAllChildDevices().each { deleteChildDevice(it.deviceNetworkId) }
     writeLog("DSCAlarmSmartAppV2 - Removing all child devices")
+}
+
+def alarmHandler(evt) {
+  if (!settings.enableSHM) {
+    return
+  }
+
+  if (state.alarmSystemStatus == evt.value) {
+    return
+  }
+
+  state.alarmSystemStatus = evt.value
+  if (evt.value == "stay") {
+    sendCommand('/api/alarmArmStay');
+  }
+  if (evt.value == "away") {
+    sendCommand('/api/alarmArmAway');
+  }
+  if (evt.value == "off") {
+    sendCommand('/api/alarmDisarm');
+  }
 }
 
 def lanResponseHandler(evt) {
@@ -160,6 +182,27 @@ private updateAlarmDeviceType(String cmd) {
   if (alarmdevice) {
     alarmdevice.dscalarmparse("${cmd}")
     writeLog("DSCAlarmSmartAppV2 - Updating Alarm Device ${alarmdeviceNetworkID} using Command: ${cmd}")
+  }
+}
+
+private updateAlarmSystemStatus(partitionstatus) {
+  if (!settings.enableSHM || partitionstatus == "arming") {
+    return
+  }
+
+  def lastAlarmSystemStatus = state.alarmSystemStatus
+  if (partitionstatus == "armedstay") {
+    state.alarmSystemStatus = "stay"
+  }
+  if (partitionstatus == "armedaway") {
+    state.alarmSystemStatus = "away"
+  }
+  if (partitionstatus == "ready") {
+    state.alarmSystemStatus = "off"
+  }
+
+  if (lastAlarmSystemStatus != state.alarmSystemStatus) {
+    sendLocationEvent(name: "alarmSystemStatus", value: state.alarmSystemStatus)
   }
 }
 

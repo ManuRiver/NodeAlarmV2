@@ -123,6 +123,7 @@ def dscalarmparse(String description) {
             }
             else {
                 parent.writeLog("DSCAlarmSmartAppV2 AlarmPanel Device Type - Parse msg - Alarm ready")
+                parent.updateAlarmSystemStatus("ready")
                 sendEvent(name: "alarmStatus", value: "ready")
                 // When status is "Ready" we can arm
                 sendEvent(name: "awaySwitch", value: "off")
@@ -136,6 +137,7 @@ def dscalarmparse(String description) {
         } else if ( msg.substring(0, 2) == "AR" ) {
             if (msg[3] == "0") {
                 parent.writeLog("DSCAlarmSmartAppV2 AlarmPanel Device Type - Parse msg - Alarm disarmed")
+                parent.updateAlarmSystemStatus("ready")
                 sendEvent(name: "alarmStatus", value: "disarmed") 
                 sendEvent(name: "awaySwitch", value: "off")
                 sendEvent(name: "staySwitch", value: "off")
@@ -145,6 +147,7 @@ def dscalarmparse(String description) {
             else if (msg[3] == "1") {
                 if (msg[5] == "0") {
                     parent.writeLog("DSCAlarmSmartAppV2 AlarmPanel Device Type - Parse msg - Alarm Away")
+                    parent.updateAlarmSystemStatus("armedaway")
                     sendEvent(name: "alarmStatus", value: "away")
                     sendEvent(name: "awaySwitch", value: "on")
                     sendEvent(name: "staySwitch", value: "off")
@@ -153,6 +156,7 @@ def dscalarmparse(String description) {
                 }
                 else if (msg[5] == "2") {
                     parent.writeLog("DSCAlarmSmartAppV2 AlarmPanel Device Type - Parse msg - Alarm Stay")
+                    parent.updateAlarmSystemStatus("armedstay")
                     sendEvent(name: "alarmStatus", value: "stay")
                     sendEvent(name: "awaySwitch", value: "off")
                     sendEvent(name: "staySwitch", value: "on")
@@ -162,6 +166,7 @@ def dscalarmparse(String description) {
             }
             else if (msg[3] == "2") {
                 parent.writeLog("DSCAlarmSmartAppV2 AlarmPanel Device Type - Parse msg - Alarm Arming")
+                parent.updateAlarmSystemStatus("arming")
                 sendEvent(name: "alarmStatus", value: "arming")
                 sendEvent(name: "awaySwitch", value: "off")
                 sendEvent(name: "staySwitch", value: "off")
