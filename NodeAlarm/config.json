@@ -1,7 +1,7 @@
 {
   "httpport": 3000,
   "dscalarm": {
-    "alarmpassword": "2702",
+    "alarmpassword": "1806",
     "wincom": "COM3",
     "linuxcom": "/dev/ttyUSB0",
     "baudRate": 9600,

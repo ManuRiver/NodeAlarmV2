@@ -157,16 +157,22 @@ app.get('/subscribe/:host', function (req, res) {
 app.get('/config/:host', function (req, res) {
     //var parts = req.params.host.split(":");
     var parts = req.params.host;
-    nconf.set('dscalarm:alarmpassword', parts);
-    nconf.save(function (err) {
-      if (err) {
-        logger("SaveConfig",'Configuration error: '+err.message);
-        res.status(500).json({ error: 'Configuration error: '+err.message });
-        return;
-      }
-    });
+    if(parts != "null"){
+        nconf.set('dscalarm:alarmpassword', parts);
+        nconf.save(function (err) {
+            if (err) {
+                logger("SaveConfig",'Configuration error: '+err.message);
+                res.status(500).json({ error: 'Configuration error: '+err.message });
+                return;
+            }
+        });
+        logger("SaveConfig","DSCAlarm Panel Code Saved: "+parts);
+    }
+    else{
+        logger("SaveConfig","Failed to save DSCAlarm Panel Code password cannot be null");
+    }
     res.end();
-    logger("SaveConfig","DSCAlarm Panel Code Saved: "+parts);
+    
 });
 
 /**
@@ -337,7 +343,7 @@ function alarmSetDate() {
     }
     var year = date.getFullYear().toString().substring(2,4);
     var timedate = hour+minute+monthstr+day+year;
-
+    logger("AlarmSetDate","SetDate: "+timedate);
     var cmd = "010" + timedate;
     cmd = appendChecksum(cmd);
     sendToSerial(cmd);

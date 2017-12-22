@@ -2,9 +2,7 @@
  *  DSCAlarmApp
  *
  *  Author: Victor Santana
- *   based on work by XXX
- *  
- *  Date: 2017-03-26
+ *  Date: 2017-12-21
  */
 
 definition(
@@ -34,29 +32,33 @@ def page1() {
     }
     section("SmartThings Raspberry") {
       input "proxyAddress", "text", title: "Proxy Address", description: "(ie. 192.168.1.10)", required: true
-      input "proxyPort", "text", title: "Proxy Port", description: "(ie. 8080)", required: true, defaultValue: "8080"
+      input "proxyPort", "text", title: "Proxy Port", description: "(ie. 3000)", required: true, defaultValue: "3000"
       //input "authCode", "password", title: "Auth Code", description: "", required: true, defaultValue: "secret-key"
     }
     section("DSCAlarm Arm Disarm") {
       //input name: "pluginType", type: "enum", title: "Plugin Type", required: true, submitOnChange: true, options: ["envisalink", "ad2usb"]
-      input "securityCode", "password", title: "Security Code", description: "User code to arm/disarm the security panel", required: false
+      input "securityCode", "password", title: "Security Code", description: "User code to arm/disarm the security panel", required: true
       input "enableDiscovery", "bool", title: "Discover Zones (WARNING: all existing zones will be removed)", required: false, defaultValue: false
     }
 
     //section("Smart Home Monitor") {
     //  input "enableSHM", "bool", title: "Integrate with Smart Home Monitor", required: true, defaultValue: true
     //}
+
+		section("Enable Debug Log at SmartThing IDE"){
+			input "idelog", "bool", title: "Select True or False:", defaultValue: false, required: false
+		}     
   }
 }
 
 def installed() {
-	log.debug "Installed with settings: ${settings}"
+  writeLog("DSCAlarmSmartAppV2 - DSCInstalled with settings: ${settings}")
 	initialize()
   addDSCAlarmDeviceType()
 }
 
 def updated() {
-	log.debug "Updated with settings: ${settings}"
+  writeLog("DSCAlarmSmartAppV2 - Updated with settings: ${settings}")
 	//unsubscribe()
 	initialize()
   sendCommand('/subscribe/'+getNotifyAddress())
@@ -70,6 +72,7 @@ def updated() {
 
 def initialize() {
     subscribe(location, null, lanResponseHandler, [filterEvents:false])
+    writeLog("DSCAlarmSmartAppV2 - Initialize")
 }
 
 def uninstalled() {
@@ -78,6 +81,7 @@ def uninstalled() {
 
 private removeChildDevices() {
     getAllChildDevices().each { deleteChildDevice(it.deviceNetworkId) }
+    writeLog("DSCAlarmSmartAppV2 - Removing all child devices")
 }
 
 def lanResponseHandler(evt) {
@@ -100,9 +104,6 @@ def lanResponseHandler(evt) {
 
     def headers = getHttpHeaders(map.headers);
     def body = getHttpBody(map.body);
-    //log.trace "SmartThings Node Proxy: ${evt.stringValue}"
-    //log.trace "Headers: ${headers}"
-    //log.trace "Body: ${body}"
 
     //verify that this message is for this plugin
     //if (headers.'stnp-plugin' != settings.pluginType) {
@@ -110,16 +111,17 @@ def lanResponseHandler(evt) {
     //}
 
     if (headers.'device' != 'dscalarm') {
-        return
-    }    
+      writeLog("DSCAlarmSmartAppV2 - Received event ${evt} but it didn't came from DSCAlarm")
+      return
+    }
 
     //log.trace "Honeywell Security event: ${evt.stringValue}"
-    log.debug "DSCAlarmV2 SmartApp - StringValue: ${evt.stringValue}"
-    log.debug "DSCAlarmV2 SmartApp - headers: ${headers}"
-    log.debug "DSCAlarmV2 SmartApp - body: ${body}"
+    writeLog("DSCAlarmSmartAppV2 - Received event headers:  ${headers}")
+    writeLog("DSCAlarmSmartAppV2 - Received event body: ${body}")
     processEvent(body)
 }
 
+// Check if the received event is for descover or update zone/alarm status
 private processEvent(evt) {
   if (evt.type == "discover") {
     addChildDevices(evt.zones)
@@ -130,8 +132,7 @@ private processEvent(evt) {
 }
 
 def parserDSCCommand(cmd) {
-    log.debug "DSCAlarm SmartApp - Received Alarm Command: $cmd"
-    
+    writeLog("DSCAlarmSmartAppV2 - Received Alarm Command: ${cmd}")
     if(cmd.length() >= 4){
     	if(cmd.substring(0,2) == "ZN"){
         	updateZoneDeviceType(cmd)
@@ -141,12 +142,6 @@ def parserDSCCommand(cmd) {
         	updateAlarmDeviceType(cmd)
         }
     }
-    
-	//else{
-	//	log.debug "DSCAlarm SmartApp - unhandled command: $cmd"
-	//	httpError(501, "$cmd is not a valid command")
-	//}
-	
 }
 
 private updateZoneDeviceType(String cmd) {
@@ -155,6 +150,7 @@ private updateZoneDeviceType(String cmd) {
   def zonedevice = getChildDevice(zonedeviceNetworkID)
   if (zonedevice) {
     zonedevice.updatedevicezone("${cmd}")
+    writeLog("DSCAlarmSmartAppV2 - Updating zone ${zonedeviceNetworkID} using Command: ${cmd}")
   }
 }
 
@@ -163,11 +159,13 @@ private updateAlarmDeviceType(String cmd) {
   def alarmdevice = getChildDevice(alarmdeviceNetworkID)
   if (alarmdevice) {
     alarmdevice.dscalarmparse("${cmd}")
+    writeLog("DSCAlarmSmartAppV2 - Updating Alarm Device ${alarmdeviceNetworkID} using Command: ${cmd}")
   }
 }
 
 def discoverChildDevices() {
   sendCommand('/discover')
+  writeLog("DSCAlarmSmartAppV2 - Sending discovery request")
 }
 
 private addChildDevices(zones) {
@@ -176,7 +174,7 @@ private addChildDevices(zones) {
     if (!getChildDevice(deviceId)) {
       it.type = it.type.capitalize()
       addChildDevice("DSCAlarmV2", "DSCAlarmV2 Zone "+it.type, deviceId, hostHub.id, ["name": it.name, label: it.name, completedSetup: true])
-      log.debug "Added zone device: ${deviceId}"
+      writeLog("DSCAlarmSmartAppV2 - Added zone device: ${deviceId}")
     }
   }
 }
@@ -185,7 +183,7 @@ private addDSCAlarmDeviceType() {
   def deviceId = 'dscalrpanel'
   if (!getChildDevice(deviceId)) {
     addChildDevice("DSCAlarmV2", "DSCAlarmV2 Alarm Panel", deviceId, hostHub.id, ["name": "DSCAlarmV2 Security", label: "DSCAlarmV2 Security", completedSetup: true])
-    log.debug "Added DSCAlarmDeviceType device: ${deviceId}"
+    writeLog("DSCAlarmSmartAppV2 - Added DSCAlarmDeviceType device: ${deviceId}")
   }
 }
 
@@ -198,8 +196,6 @@ private getNotifyAddress() {
 }
 
 private sendCommand(path) {
-  //log.trace "Honeywell Security send command: ${path}"
-
   if (settings.proxyAddress.length() == 0 ||
     settings.proxyPort.length() == 0) {
     log.error "SmartThings Node Proxy configuration not set!"
@@ -244,4 +240,11 @@ private String convertIPtoHex(ipAddress) {
 
 private String convertPortToHex(port) {
   return port.toString().format( '%04x', port.toInteger() ).toUpperCase()
+}
+
+private writeLog(message)
+{
+  if(idelog){
+    log.debug "${message}"
+  }
 }

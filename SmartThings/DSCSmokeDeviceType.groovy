@@ -39,12 +39,13 @@ metadata {
 
 // handle commands
 def updatedevicezone(String cmd) {
-	// state will be a valid state for a zone (open, closed)
-	// zone will be a number for the zone
+  parent.writeLog("DSCAlarmSmartAppV2 Smoke Device Type - Processing command: $cmd")
 	if(cmd.substring(3,9).substring(0,3) == "609"){
 		sendEvent (name: "smoke", value: "detected")
+    parent.writeLog("DSCAlarmSmartAppV2 Smoke Device Type - Changed to: Detected")
 	}
 	else if (cmd.substring(3,9).substring(0,3) == "610"){
 		sendEvent (name: "smoke", value: "clear")
+    parent.writeLog("DSCAlarmSmartAppV2 Smoke Device Type - Changed to: Clear")
 	}
 }
