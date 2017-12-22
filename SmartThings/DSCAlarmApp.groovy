@@ -225,7 +225,7 @@ private addChildDevices(zones) {
 private addDSCAlarmDeviceType() {
   def deviceId = 'dscalrpanel'
   if (!getChildDevice(deviceId)) {
-    addChildDevice("DSCAlarmV2", "DSCAlarmV2 Alarm Panel", deviceId, hostHub.id, ["name": "DSCAlarmV2 Security", label: "DSCAlarmV2 Security", completedSetup: true])
+    addChildDevice("DSCAlarmV2", "DSCAlarmV2 Alarm Panel", deviceId, hostHub.id, ["name": "DSCAlarmV2 Alarm Panel", label: "DSCAlarmV2 Alarm Panel", completedSetup: true])
     writeLog("DSCAlarmSmartAppV2 - Added DSCAlarmDeviceType device: ${deviceId}")
   }
 }
