@@ -274,7 +274,7 @@ function alarmArmAway() {
 
 // Send the ArmStay command to Alarm
 function alarmArmStay() {
-    var cmd = "0311";
+    var cmd = "0321";
     cmd = appendChecksum(cmd);
     sendToSerial(cmd);
 }
