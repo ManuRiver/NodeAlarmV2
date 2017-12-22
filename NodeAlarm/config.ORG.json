@@ -8,12 +8,12 @@
     "panelConfig": {
       "type": "discover",
       "zones": [
-        {"zone": "001", "type": "contact", "name": "DSCAlarmV2 Zone001"},
-        {"zone": "002", "type": "contact", "name": "DSCAlarmV2 Zone002"},
-        {"zone": "003", "type": "contact", "name": "DSCAlarmV2 Zone003"},
-        {"zone": "004", "type": "contact", "name": "DSCAlarmV2 Zone004"},
-        {"zone": "005", "type": "contact", "name": "DSCAlarmV2 Zone005"},
-        {"zone": "006", "type": "contact", "name": "DSCAlarmV2 Zone006"}
+        {"zone": "001", "type": "contact", "name": "Zone 1 - Fron/Back Door"},
+        {"zone": "002", "type": "contact", "name": "Zone 2 - Sof Dinner Wind"},
+        {"zone": "003", "type": "contact", "name": "Zone 3 - Kit Leave Room Wind"},
+        {"zone": "004", "type": "contact", "name": "Zone 4 - Master Room Wind"},
+        {"zone": "005", "type": "contact", "name": "Zone 5 - Back Yard Door"},
+        {"zone": "006", "type": "contact", "name": "Zone 6 - 2nd Floor Wind"}
       ]
     }
   },

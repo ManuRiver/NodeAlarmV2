@@ -2,7 +2,7 @@
 /*
  DSC Alarm Bridge
  This NodeJS code will work like a bridge/proxy between Smartthings and DSC IT-100 Serial board
- This code will monitor the DSC IT-100 Serial board and will send the received commands to SmartThings ServiceManager (Also known as SmartApp)
+ This code will monitor the DSC IT-100 Serial board and will send and received commands to SmartThings ServiceManager (Also known as SmartApp)
 
  To install the dependencies just open the npm and type "npm install" inside of the project folder
 
@@ -29,6 +29,7 @@
  https://github.com/kholloway/smartthings-dsc-alarm
  https://github.com/kholloway/smartthings-dsc-alarm/blob/master/RESTAPISetup.md
  https://github.com/yracine/DSC-Integration-with-Arduino-Mega-Shield-RS-232
+ https://github.com/redloro/smartthings
  
 */
 
@@ -48,7 +49,14 @@ nconf.file({ file: './config.json' });
 //var config = require('./config.js');
 fs = require('fs');
 
-console.log("Modules loaded");
+////////////////////////////////////////
+// Logger Function
+////////////////////////////////////////
+var logger = function(mod,str) {
+    console.log("[%s] [%s] %s", new Date().toISOString(), mod, str);
+}
+
+logger("Modules","Modules loaded");
 
 // Setting Variables
 var portStatus = 0
@@ -58,24 +66,15 @@ var alarmPassword = nconf.get('dscalarm:alarmpassword');
 var baudRate = nconf.get('dscalarm:baudRate');
 
 var httpport = nconf.get('httpport');
-console.log(nconf.get());
-//var isWin = /^win/.test(process.platform);
+
 // Detecting the OS Version to setup the right com port useful for debugging
-console.log("Detected OS Version: " + process.platform);
+logger("OSVersion","Detected OS Version: " + process.platform);
 if (process.platform == "win32") {
     var sport = winCom;
 }
 else {
     var sport = linuxCom;
 }
-
-// Example how to List all available Serial ports:
-//SerialPort.list(function (err, ports) {
-// ports.forEach(function(port) {
-//    console.log(port.comName);
-//  });
-//});
-
 
 //////////////////////////////////////////////////////////////////
 // Creating Endpoints
@@ -145,43 +144,48 @@ app.get('/subscribe/:host', function (req, res) {
     nconf.set('notify:port', parts[1]);
     nconf.save(function (err) {
       if (err) {
-        logger('Configuration error: '+err.message);
+        logger("Subscribe",'Configuration error: '+err.message);
         res.status(500).json({ error: 'Configuration error: '+err.message });
         return;
       }
     });
     res.end();
+    logger("Subscribe","SmartThings HUB IpAddress: "+parts[0] +" Port: "+ parts[1]);
 });
 
+// Used to save the DSCAlarm password comming from SmartThings App
 app.get('/config/:host', function (req, res) {
     //var parts = req.params.host.split(":");
     var parts = req.params.host;
     nconf.set('dscalarm:alarmpassword', parts);
     nconf.save(function (err) {
       if (err) {
-        logger('Configuration error: '+err.message);
+        logger("SaveConfig",'Configuration error: '+err.message);
         res.status(500).json({ error: 'Configuration error: '+err.message });
         return;
       }
     });
     res.end();
+    logger("SaveConfig","DSCAlarm Panel Code Saved: "+parts);
 });
 
 /**
  * discover
  */
-
 // Used to send all zones back to SmartThings
 app.get("/discover", function (req, res) {
     alarmDiscover();
     res.end();
 }); 
 
+logger("HTTP Endpoint","All HTTP endpoints loaded");
+
 ////////////////////////////////////////
 // Creating Server
 ////////////////////////////////////////
 var server = http.createServer(app);
 server.listen(httpport);
+logger("HTTP Endpoint","HTTP Server Created at port: "+httpport);
 
 ////////////////////////////////////////
 // Creating Serial (RS232) Connection
@@ -196,12 +200,13 @@ var myPort = new SerialPort(sport, {
     parser: SerialPort.parsers.readline("\r\n")
 });
 
+logger("SerialPort","Creating Serial Port: "+sport);
 
-// list serial ports:
-//serialport.list(function (err, ports) {
-//    ports.forEach(function (port) {
-//        console.log(port.comName);
-//    });
+// Example how to List all available Serial ports:
+//SerialPort.list(function (err, ports) {
+// ports.forEach(function(port) {
+//    console.log(port.comName);
+//  });
 //});
 
 // The object myPort have 4 functions open, data, close, error
@@ -213,30 +218,28 @@ myPort.on('error', showError);
 
 // Method used to Open the serial communication with DSC IT-100 Board
 function showPortOpen() {
-    console.log('Serial Port opened: ' + sport + ' BaudRate: ' + myPort.options.baudRate);
+    logger("SerialPort",'Serial Port opened: ' + sport + ' BaudRate: ' + myPort.options.baudRate);
     portStatus = 1;
 }
 
 // Method used to Receive serial communication from DSC IT-100 Board
 function receivedFromSerial(data) {
-    //myPort.write(data);
     parseReceivedData(data);
-    //console.log("Received Serial data: " + data);
 }
 
 // Method used to close the Serial Port
 function showPortClose() {
-    console.log('port closed.');
+    logger("SerialPort",'Serial Port closed: ' + sport);
 }
 
 // Method used to list any serial communication error
 function showError(error) {
-    console.log('Serial port error: ' + error);
+    logger("SerialPort",'Serial port error: ' + error);
 }
 
 // Method used to send serial data
 function sendToSerial(data) {
-    console.log("sending to serial: " + data);
+    logger("SerialPort","Sending to serial port: " + data);
     myPort.write(data);
 }
 
@@ -340,15 +343,15 @@ function alarmSetDate() {
     sendToSerial(cmd);
 }
 
+// Send all Zones from config.json back to SmartThings
+// SmartThings will create one child device based on this settings
 function alarmDiscover(){
     if (nconf.get('dscalarm:panelConfig')) {
         notify(JSON.stringify(nconf.get('dscalarm:panelConfig')));
-        //logger('Completed panel discovery');
+        logger("AlarmDiscover","Seding zones back: " + JSON.stringify(nconf.get('dscalarm:panelConfig')));
     } else {
-        //logger('** NOTICE ** Panel configuration not set in config file!');
+        logger("AlarmDiscover","PanelConfig not set.");
     }
-    
-    //never do auto-discovery
     return;
 }
 
@@ -398,11 +401,9 @@ function appendChecksum(data) {
         var entryBuffer = new Buffer(entry, 'ascii');
         var entryRepHex = entryBuffer.toString('hex');
         var entryHex = parseInt(entryRepHex, 16);
-        //console.log(entryHex + " " + parseInt(entryHex, 10));
         result = result + parseInt(entryHex, 10);
     });
     data = data + (parseInt(result, 10).toString(16).toUpperCase().slice(-2) + "\r\n");
-    //console.log(data);
     return data;
 }
 
@@ -414,9 +415,8 @@ function appendChecksum(data) {
 // Alarm Documentation - http://cms.dsc.com/download.php?t=1&id=16238
 ///////////////////////////////////////////
 function parseReceivedData(data) {
-    console.log("Received Serial data: " + data);
+    logger("SerialPort","Received Serial data: " + data);
     var cmdfullstr = data.toString('ascii');
-    console.log(data);
     if (cmdfullstr.length >= 3){
         var cmd = cmdfullstr.substr(0, 3);
         if (cmd == "609") {
@@ -570,40 +570,13 @@ function parseReceivedData(data) {
 // Function to send alarm msgs to SmartThing
 ///////////////////////////////////////////
 function sendSmartThingMsg(command) {
-    console.log("Sending SmartThing comand: " + command);
     var msg = JSON.stringify({type: 'zone', command: command});
     notify(msg);
+    logger("SendMartthingsMsg","Sending SmartThing comand: " + msg);
 }
 
 ///////////////////////////////////////////
-// Send HTTPs Request to SmartThings
-///////////////////////////////////////////
-function sendHttpRequest(pathURL) {
-    //https://graph-na02-useast1.api.smartthings.com/api/smartapps/installations/af13cf06-0d14-451f-93de-40ec0189d142/switches/off?access_token=beba4dbc-5513-4149-a7f5-4d89ff8967ab
-    //https://graph-na02-useast1.api.smartthings.com/api/smartapps/installations/af13cf06-0d14-451f-93de-40ec0189d142/switches/on?access_token=beba4dbc-5513-4149-a7f5-4d89ff8967ab
-
-    var options = {
-        host: config.shardlocation,
-        port: 443,
-        path: pathURL,
-        method: 'GET'
-    };
-
-    var req = https.request(options, function (res) {
-        console.log(res.statusCode);
-        res.on('data', function (d) {
-            process.stdout.write(d);
-        });
-    });
-    req.end();
-
-    req.on('error', function (e) {
-        console.error(e);
-    });
-}
-
-///////////////////////////////////////////
-// Send HTTPs Request to SmartThings
+// Send HTTP callback to SmartThings HUB
 ///////////////////////////////////////////
 /**
  * Callback to the SmartThings Hub via HTTP NOTIFY
@@ -612,7 +585,7 @@ function sendHttpRequest(pathURL) {
 var notify = function(data) {
     if (!nconf.get('notify:address') || nconf.get('notify:address').length == 0 ||
       !nconf.get('notify:port') || nconf.get('notify:port') == 0) {
-      logger("Notify server address and port not set!");
+      logger("Notify","Notify server address and port not set!");
       return;
     }
   
@@ -630,15 +603,9 @@ var notify = function(data) {
   
     var req = http.request(opts);
     req.on('error', function(err, req, res) {
-      logger("Notify error: "+err);
+      logger("Notify","Notify error: "+err);
     });
     req.write(data);
     req.end();
 }
-
-var logger = function(str) {
-    mod = 'stnp';
-    console.log("[%s] [%s] %s", new Date().toISOString(), mod, str);
-}
-
-console.log("DSCAlarm Started");
+//console.log("DSCAlarm Started");
