@@ -167,6 +167,9 @@ app.get('/config/:host', function (req, res) {
             }
         });
         logger("SaveConfig","DSCAlarm Panel Code Saved: "+parts);
+        alarmPassword = nconf.get('dscalarm:alarmpassword');
+        logger("SaveConfig","DSCAlarm Panel Reloading Config File: "+alarmPassword);
+        
     }
     else{
         logger("SaveConfig","Failed to save DSCAlarm Panel Code password cannot be null");
