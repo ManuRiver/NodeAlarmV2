@@ -60,7 +60,7 @@ def updated() {
 	//unsubscribe()
 	initialize()
   sendCommand('/subscribe/'+getNotifyAddress())
-
+  sendCommand('/config/'+settings.securityCode)
   if (settings.enableDiscovery) {
     //delay discovery for 5 seconds
     runIn(5, discoverChildDevices)

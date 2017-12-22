@@ -1,0 +1,4 @@
+curl -d '{type: 'zone',"command":"ZN-610001"}' -H "Content-Type: application/json" -H "device: dscalarm" http://192.168.0.6:39500/ 
+curl -d '{"type": "zone","command":"ZN-610001"}' -H "Content-Type: application/json" -H "device: dscalarm" http://192.168.0.6:39500/
+curl -d '{"type": "zone","command":"SY-658"}' -H "Content-Type: application/json" -H "device: dscalarm" http://192.168.0.6:39500/
+{type: 'zone', command: command}

@@ -45,20 +45,20 @@ var app = express();
 var SerialPort = require('serialport');
 var nconf = require('nconf');
 nconf.file({ file: './config.json' });
-var config = require('./config.js');
+//var config = require('./config.js');
 fs = require('fs');
 
 console.log("Modules loaded");
 
 // Setting Variables
 var portStatus = 0
-var winCom = nconf.get('wincom');
-var linuxCom = nconf.get('linuxcom');;
-var alarmPassword = nconf.get('alarmpassword');
-var baudRate = nconf.get('baudRate');
+var winCom = nconf.get('dscalarm:wincom');
+var linuxCom = nconf.get('dscalarm:linuxcom');;
+var alarmPassword = nconf.get('dscalarm:alarmpassword');
+var baudRate = nconf.get('dscalarm:baudRate');
 
 var httpport = nconf.get('httpport');
-
+console.log(nconf.get());
 //var isWin = /^win/.test(process.platform);
 // Detecting the OS Version to setup the right com port useful for debugging
 console.log("Detected OS Version: " + process.platform);
@@ -70,7 +70,7 @@ else {
 }
 
 // Example how to List all available Serial ports:
-// serialport.list(function (err, ports) {
+//SerialPort.list(function (err, ports) {
 // ports.forEach(function(port) {
 //    console.log(port.comName);
 //  });
@@ -143,6 +143,20 @@ app.get('/subscribe/:host', function (req, res) {
     var parts = req.params.host.split(":");
     nconf.set('notify:address', parts[0]);
     nconf.set('notify:port', parts[1]);
+    nconf.save(function (err) {
+      if (err) {
+        logger('Configuration error: '+err.message);
+        res.status(500).json({ error: 'Configuration error: '+err.message });
+        return;
+      }
+    });
+    res.end();
+});
+
+app.get('/config/:host', function (req, res) {
+    //var parts = req.params.host.split(":");
+    var parts = req.params.host;
+    nconf.set('dscalarm:alarmpassword', parts);
     nconf.save(function (err) {
       if (err) {
         logger('Configuration error: '+err.message);
